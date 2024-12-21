@@ -1,68 +1,65 @@
-# Register API
+# User Authentication API
 
-This document describes the `/register` endpoint, including its workflow, validation, expected responses, and example usage.
+This API provides user registration and login functionality using Node.js and Express.
 
 ---
 
 ## Workflow
 
-1. **Client Request:** The client sends a POST request to the `/register` endpoint with user data.
-2. **Validation:** Incoming data is validated using `express-validator` to ensure required fields are present and meet criteria.
-3. **Password Hashing:** The password is hashed using `bcrypt` before being stored.
-4. **Database Interaction:** A new user document is created in the MongoDB database.
-5. **JWT Token Generation:** A JWT token is generated and sent back to the client.
-6. **Response:** The client receives the created user data (excluding the password) and a token.
+### Registration
+1. User submits their `firstName`, `lastName`, `email`, and `password` to the `/register` endpoint.
+2. The inputs are validated using `express-validator`.
+3. If validation passes:
+   - The password is hashed.
+   - A new user is created and saved in the database.
+   - An authentication token is generated and returned.
+4. If validation fails, an error response is returned.
+
+### Login
+1. User submits their `email` and `password` to the `/login` endpoint.
+2. The inputs are validated using `express-validator`.
+3. If validation passes:
+   - The database is queried for the user with the provided email.
+   - The submitted password is compared with the stored hashed password.
+   - If authentication is successful, an authentication token is returned.
+4. If validation fails or authentication is unsuccessful, an error response is returned.
 
 ---
 
-## Endpoint
+## Endpoints
 
 ### POST `/register`
+Registers a new user.
 
-### Request Body
-
-| Field       | Type   | Required | Validation                                       |
-| ----------- | ------ | -------- | ------------------------------------------------ |
-| `firstName` | String | Yes      | Must be at least 3 characters long.              |
-| `email`     | String | Yes      | Must be a valid email and at least 6 characters. |
-| `password`  | String | Yes      | Must be at least 6 characters long.              |
-
-### Example Request
-
+#### Request Body
 ```json
 {
   "firstName": "John",
   "lastName": "Doe",
   "email": "john.doe@example.com",
-  "password": "securePassword"
+  "password": "securePassword123"
 }
 ```
 
----
-
-## Example Response
-
-### Success (201 Created)
-
+#### Response
+**Success (201):**
 ```json
 {
   "user": {
-    "_id": "64c9e1f9c4e1e8b8bcee4567",
     "firstName": "John",
     "lastName": "Doe",
     "email": "john.doe@example.com"
   },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NGM5ZTFmOWM0ZTFlOGI4YmNlZTQ1NjciLCJpYXQiOjE2NzI5MzUyNTN9.8-rZn8TwNp6c2sEF0gRfZwex_2nW-K1Jh7NG8kEAwPQ"
+  "token": "<JWT Token>"
 }
 ```
 
-### Error (400 Bad Request)
-
+**Validation Error (400):**
 ```json
 {
   "error": [
     {
-      "msg": "Full name must be greater than 3 charector",
+      "msg": "Full name must be greater than 3 characters",
       "param": "firstName",
       "location": "body"
     }
@@ -70,45 +67,112 @@ This document describes the `/register` endpoint, including its workflow, valida
 }
 ```
 
-### Error (500 Internal Server Error)
+---
 
+### POST `/login`
+Logs in an existing user.
+
+#### Request Body
 ```json
 {
-  "error": "User not created: <detailed error message>"
+  "email": "john.doe@example.com",
+  "password": "securePassword123"
+}
+```
+
+#### Response
+**Success (200):**
+```json
+{
+  "user": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com"
+  },
+  "token": "<JWT Token>"
+}
+```
+
+**Error (401):**
+```json
+{
+  "message": "Invalid email and password"
 }
 ```
 
 ---
 
-## Status Codes
-
-| Code | Description                          |
-| ---- | ------------------------------------ |
-| 201  | User successfully registered.        |
-| 400  | Validation errors or missing fields. |
-| 500  | Internal server error.               |
-
----
-
 ## Validation Rules
 
-1. `firstName`: Must be at least 3 characters.
-2. `email`: Must be a valid email and at least 6 characters long.
-3. `password`: Must be at least 6 characters.
+### `/register`
+- `firstName`: Minimum 3 characters.
+- `email`: Valid email format, minimum 6 characters.
+- `password`: Minimum 6 characters.
+
+### `/login`
+- `email`: Valid email format, minimum 6 characters.
+- `password`: Minimum 6 characters.
 
 ---
 
-## Error Handling
+## Error Codes
 
-- Validation errors return a `400` status with an array of errors.
-- Database errors or unexpected exceptions return a `500` status with a detailed error message.
-
----
-
-## Notes
-
-- Ensure that the `JWT_SECRET` environment variable is set for token generation.
-- Passwords are hashed using `bcrypt` for security.
-- MongoDB ensures that the `email` field is unique.
+| Status Code | Meaning                               |
+|-------------|---------------------------------------|
+| 400         | Validation errors or bad request.     |
+| 401         | Unauthorized or authentication failed.|
+| 201         | Resource successfully created.        |
+| 200         | Successful request.                   |
 
 ---
+
+## Example Usage
+
+### Registration
+**Request:**
+```bash
+curl -X POST \
+  http://localhost:3000/register \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "email": "jane.doe@example.com",
+    "password": "password123"
+  }'
+```
+
+**Response:**
+```json
+{
+  "user": {
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "email": "jane.doe@example.com"
+  },
+  "token": "<JWT Token>"
+}
+```
+
+### Login
+**Request:**
+```bash
+curl -X POST \
+  http://localhost:3000/login \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "jane.doe@example.com",
+    "password": "password123"
+  }'
+```
+
+**Response:**
+```json
+{
+  "user": {
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "email": "jane.doe@example.com"
+  },
+  "token": "<JWT Token>"
+}
