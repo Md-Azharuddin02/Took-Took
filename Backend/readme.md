@@ -1,6 +1,6 @@
 # User Authentication API
 
-This API provides user registration and login functionality using Node.js and Express.
+This API provides user registration, login, profile access, and logout functionality using Node.js and Express.
 
 ---
 
@@ -23,6 +23,20 @@ This API provides user registration and login functionality using Node.js and Ex
    - The submitted password is compared with the stored hashed password.
    - If authentication is successful, an authentication token is returned.
 4. If validation fails or authentication is unsuccessful, an error response is returned.
+
+### Profile Access
+1. The `/profile` endpoint is protected with an authentication middleware.
+2. The middleware checks for a valid token in the request cookies or authorization header.
+3. If the token is valid and not blacklisted:
+   - The user's profile is returned.
+4. If authentication fails, an error response is returned.
+
+### Logout
+1. User sends a request to the `/logout` endpoint.
+2. The authentication middleware ensures the user is authenticated.
+3. The token is added to a blacklist with a 24-hour expiration.
+4. The authentication token cookie is cleared from the client.
+5. A success message is returned.
 
 ---
 
@@ -102,6 +116,64 @@ Logs in an existing user.
 
 ---
 
+### GET `/profile`
+Retrieves the authenticated user's profile.
+
+#### Request Headers
+```json
+{
+  "Authorization": "Bearer <JWT Token>"
+}
+```
+
+#### Response
+**Success (200):**
+```json
+{
+  "user": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com"
+  }
+}
+```
+
+**Error (401):**
+```json
+{
+  "message": "Your are not authorized"
+}
+```
+
+---
+
+### POST `/logout`
+Logs out the authenticated user.
+
+#### Request Headers
+```json
+{
+  "Authorization": "Bearer <JWT Token>"
+}
+```
+
+#### Response
+**Success (200):**
+```json
+{
+  "message": "Successfully logged out"
+}
+```
+
+**Error (401):**
+```json
+{
+  "message": "Your are not authorized"
+}
+```
+
+---
+
 ## Validation Rules
 
 ### `/register`
@@ -132,7 +204,7 @@ Logs in an existing user.
 **Request:**
 ```bash
 curl -X POST \
-  http://localhost:3000/register \
+  http://localhost:3000/users/register \
   -H 'Content-Type: application/json' \
   -d '{
     "firstName": "Jane",
@@ -158,7 +230,7 @@ curl -X POST \
 **Request:**
 ```bash
 curl -X POST \
-  http://localhost:3000/login \
+  http://localhost:3000/users/login \
   -H 'Content-Type: application/json' \
   -d '{
     "email": "jane.doe@example.com",
@@ -176,3 +248,39 @@ curl -X POST \
   },
   "token": "<JWT Token>"
 }
+```
+
+### Profile Access
+**Request:**
+```bash
+curl -X GET \
+  http://localhost:3000/users/profile \
+  -H 'Authorization: Bearer <JWT Token>'
+```
+
+**Response:**
+```json
+{
+  "user": {
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "email": "jane.doe@example.com"
+  }
+}
+```
+
+### Logout
+**Request:**
+```bash
+curl -X POST \
+  http://localhost:3000/users/logout \
+  -H 'Authorization: Bearer <JWT Token>'
+```
+
+**Response:**
+```json
+{
+  "message": "Successfully logged out"
+}
+```
+
